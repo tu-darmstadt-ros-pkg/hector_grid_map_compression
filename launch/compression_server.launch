@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node ns="hector_grid_map_compression" name="server" type="hector_grid_map_compression_server" pkg="hector_grid_map_compression" output="screen">
+    <remap from="~/input" to="/elevation_mapping/elevation_map"/>
+    <remap from="~/output" to="img"/>
+    <remap from="~/map_info" to="map_info"/>
+    <param name="~/layer" value="elevation"/>
+  </node>
+</launch>
