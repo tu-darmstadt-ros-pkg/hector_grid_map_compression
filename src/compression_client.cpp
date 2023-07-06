@@ -105,7 +105,7 @@ void ImageToMap::callback(const sensor_msgs::ImageConstPtr& msg)
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "elevation_map_compression_client");
+  ros::init(argc, argv, "hector_grid_map_compression_client");
 
   ROS_INFO("Starting compression_client");
   ImageToMap image_to_map;

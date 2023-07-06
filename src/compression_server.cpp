@@ -78,7 +78,7 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& msg)
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "elevation_map_compression_server");
+  ros::init(argc, argv, "hector_grid_map_compression_server");
 
   ROS_INFO("Starting compression_server");
   MapToImage map_to_image;
