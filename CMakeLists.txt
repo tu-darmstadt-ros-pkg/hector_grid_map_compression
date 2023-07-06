@@ -40,3 +40,8 @@ target_link_libraries(hector_grid_map_compression_server ${catkin_LIBRARIES} )
 add_executable(hector_grid_map_compression_client src/compression_client.cpp)
 add_dependencies(hector_grid_map_compression_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} )
 target_link_libraries(hector_grid_map_compression_client ${catkin_LIBRARIES} )
+
+install(DIRECTORY
+  launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
