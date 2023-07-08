@@ -6,7 +6,7 @@
 
   <node ns="hector_grid_map_compression" name="server" type="hector_grid_map_compression_server" pkg="hector_grid_map_compression" output="screen">
     <remap from="~/input" to="$(arg grid_map_topic)"/>
-    <remap from="~/output" to="img"/>
+    <remap from="~/output" to="compressed"/>
     <remap from="~/map_info" to="map_info"/>
     <param name="~/layer" value="$(arg layer)"/>
   </node>

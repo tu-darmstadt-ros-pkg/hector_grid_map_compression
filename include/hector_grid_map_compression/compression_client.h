@@ -5,6 +5,7 @@
 #include <grid_map_ros/GridMapRosConverter.hpp>
 #include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
+#include <hector_grid_map_compression/CompressedGridMap.h>
 
 class ImageToMap
 {
@@ -14,17 +15,18 @@ public:
 
 private:
   ros::NodeHandle nh_;
-  ros::Publisher map_pub_;
-  image_transport::ImageTransport it_;
-  image_transport::Subscriber image_sub_;
+  ros::Publisher decompressed_pub_;
+  ros::Publisher img_pub_;
+  ros::Subscriber compressed_sub_;
 
   grid_map::GridMapRosConverter converter_;
   grid_map::GridMap map_;
   cv_bridge::CvImage image_;
 
-  std::string layer_;
+  std::vector<std::string> layers_;
+  bool map_initialized_;
   bool subscribed_;
 
   void connectCb();
-  void callback(const sensor_msgs::ImageConstPtr& msg);
+  void compressedMapCb(const hector_grid_map_compression::CompressedGridMapConstPtr& msg);
 };

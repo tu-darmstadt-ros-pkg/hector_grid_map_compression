@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   cv_bridge
   image_transport  
+  message_generation
 )
 
 find_package(OpenCV REQUIRED COMPONENTS
@@ -19,11 +20,27 @@ find_package(OpenCV REQUIRED COMPONENTS
   CONFIG
 )
 
+include_directories(include ${OpenCV_INCLUDE_DIRS})
+
+add_message_files(
+  DIRECTORY msg
+  FILES
+  CompressedGridLayer.msg
+  CompressedGridMap.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  sensor_msgs
+  grid_map_msgs
+)
+
 catkin_package(
   INCLUDE_DIRS 
   include
 #  LIBRARIES
-   CATKIN_DEPENDS roscpp
+   CATKIN_DEPENDS roscpp message_runtime
 #  DEPENDS system_lib
 )
 

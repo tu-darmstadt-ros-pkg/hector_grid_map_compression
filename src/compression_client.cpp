@@ -1,106 +1,115 @@
 #include <hector_grid_map_compression/compression_client.h>
+#include <hector_grid_map_compression/CompressedGridLayer.h>
+//#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
 
-ImageToMap::ImageToMap() : nh_("~"), it_(nh_)
+ImageToMap::ImageToMap() : nh_("~")
 {
   ros::SubscriberStatusCallback connect_cb = boost::bind(&ImageToMap::connectCb, this);
-  map_pub_ = nh_.advertise<grid_map_msgs::GridMap>("output", 1, connect_cb, connect_cb);
-  image_sub_ = it_.subscribe("input", 1, &ImageToMap::callback, this);
-  if (!nh_.getParam("layer", layer_))
-    ROS_ERROR("[ImageToMap] No layer specified");
+  decompressed_pub_ = nh_.advertise<grid_map_msgs::GridMap>("output", 1, connect_cb, connect_cb);
+  img_pub_ = nh_.advertise<sensor_msgs::Image>("debug_img", 1);
+  compressed_sub_ =
+      nh_.subscribe<hector_grid_map_compression::CompressedGridMap>("input", 1, &ImageToMap::compressedMapCb, this);
 
   subscribed_ = false;
+  map_initialized_ = false;
   connectCb();
 
-  map_.setBasicLayers({ layer_ });
+  //  map_.setBasicLayers({ layer_ });
 }
 
 void ImageToMap::connectCb()
 {
-  if (map_pub_.getNumSubscribers() == 0)
+  if (true)
   {
-    image_sub_.shutdown();
+    subscribed_ = true;
+    return;
+  }
+  if (decompressed_pub_.getNumSubscribers() == 0)
+  {
+    compressed_sub_.shutdown();
     subscribed_ = false;
     ROS_INFO("Unsubscribing");
   }
   else
   {
-    image_sub_ = it_.subscribe("input", 1, &ImageToMap::callback, this);
+    compressed_sub_ = nh_.subscribe("input", 1, &ImageToMap::compressedMapCb, this);
     if (!subscribed_)
       ROS_INFO("Subscribing");
     subscribed_ = true;
   }
 }
 
-void ImageToMap::callback(const sensor_msgs::ImageConstPtr& msg)
+void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGridMapConstPtr& compressed_map_msg)
 {
-  // get metadata from frame_id
-  // frame_id length_x length_y x y z rx ry rz rw resolution high low
-  std::string metadata = msg->header.frame_id;
-  std::stringstream ss(msg->header.frame_id);
-  std::vector<std::string> split;
-  std::string item;
-  while (std::getline(ss, item, ' '))
+  std::cout << "\n\n\nCB " << compressed_map_msg->header.seq << "\n";
+  if (!map_initialized_)
   {
-    split.push_back(item);
-  }
-  if (split.size() != 13)
-  {
-    ROS_ERROR("Cannot extract meta data from frame_id! Expected %d items, got %zu", 14, split.size());
-    return;
+    // Store all available layers
+    for (const auto& layer : compressed_map_msg->layers)
+      layers_.push_back(layer.name);
+    if (layers_.empty())
+    {
+      ROS_WARN("Received message contains no layers");
+      return;
+    }
   }
 
-  std::string frame_id;
-  double length_x, length_y, p_x, p_y, p_z, o_x, o_y, o_z, o_w, resolution, high, low;
-  try
+  for (const auto& layer_msg : compressed_map_msg->layers)
   {
-    frame_id = split[0];
-    length_x = std::stod(split[1]);
-    length_y = std::stod(split[2]);
-    p_x = std::stod(split[3]);
-    p_y = std::stod(split[4]);
-    p_z = std::stod(split[5]);
-    o_x = std::stod(split[7]);
-    o_y = std::stod(split[7]);
-    o_z = std::stod(split[8]);
-    o_w = std::stod(split[9]);
-    resolution = std::stod(split[10]);
-    high = std::stod(split[11]);
-    low = std::stod(split[12]);
-  }
-  catch (const std::invalid_argument&)
-  {
-    std::cerr << "Error while parsing meta data from frame_id string\n";
-    throw;
-  }
+    std::cout << "\nlayer " << layer_msg.name << "\n";
+    // Uncompress image
+    cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
+    try
+    {
+      cv_ptr->image = cv::imdecode(cv::Mat(layer_msg.layer.data), cv::IMREAD_GRAYSCALE);
+    }
+    catch (cv::Exception& e)
+    {
+      ROS_ERROR("Failed to decompress image msg! %s", e.what());
+      return;
+    }
+    const sensor_msgs::ImagePtr img_decompressed = cv_ptr->toImageMsg();
+    img_decompressed->encoding = "mono8";
 
-  double invalid_val = high + (high - low) / 255;
-  grid_map::GridMapRosConverter::initializeFromImage(*msg, resolution, map_);
-  grid_map::GridMapRosConverter::addLayerFromImage(*msg, layer_, map_, low, invalid_val);
-  grid_map::Matrix& data = map_[layer_];
+    if (layer_msg.name == "elevation")
+      img_pub_.publish(*img_decompressed);
 
-  // All grid cells with value > info->high are invalid
-  for (grid_map::GridMapIterator iterator(map_); !iterator.isPastEnd(); ++iterator)
-  {
-    const int i = iterator.getLinearIndex();
-    if (data(i) > high)
-      data(i) = std::numeric_limits<double>::quiet_NaN();
+    // Initialize
+    if (!map_initialized_)
+    {
+      grid_map::GridMapRosConverter::initializeFromImage(*img_decompressed, compressed_map_msg->info.resolution, map_);
+      map_initialized_ = true;
+    }
+
+    double invalid_val = layer_msg.max_val + (layer_msg.max_val - layer_msg.min_val) / 255;
+    std::cout << "min max invalid: " << layer_msg.min_val << " " << layer_msg.max_val << " " << invalid_val << "\n";
+    grid_map::GridMapRosConverter::addLayerFromImage(*img_decompressed, layer_msg.name, map_, layer_msg.min_val,
+                                                     invalid_val);
+    grid_map::Matrix& data = map_[layer_msg.name];
+
+    // All grid cells with value > max_val are invalid
+    int count = 0;
+    for (grid_map::GridMapIterator iterator(map_); !iterator.isPastEnd(); ++iterator)
+    {
+      const int i = iterator.getLinearIndex();
+      if (data(i) > layer_msg.max_val)
+      {
+        count++;
+        data(i) = std::numeric_limits<double>::quiet_NaN();
+      }
+      else
+        std::cout << "  valid: " << data(i) << "\n";
+    }
+    std::cout << "invalid count: " << count << "\n";
   }
 
   // Publish as grid map
   grid_map_msgs::GridMap map_msg;
   grid_map::GridMapRosConverter::toMessage(map_, map_msg);
-  map_msg.info.header.frame_id = frame_id;
-  map_msg.info.length_x = length_x;
-  map_msg.info.length_y = length_y;
-  map_msg.info.pose.position.x = p_x;
-  map_msg.info.pose.position.y = p_y;
-  map_msg.info.pose.position.z = p_z;
-  map_msg.info.pose.orientation.x = o_x;
-  map_msg.info.pose.orientation.y = o_y;
-  map_msg.info.pose.orientation.z = o_z;
-  map_msg.info.pose.orientation.w = o_w;
-  map_msg.info.resolution = resolution;
-  map_pub_.publish(map_msg);
+  map_msg.basic_layers.push_back("elevation");
+  map_msg.info = compressed_map_msg->info;
+  decompressed_pub_.publish(map_msg);
 }
 
 int main(int argc, char** argv)
