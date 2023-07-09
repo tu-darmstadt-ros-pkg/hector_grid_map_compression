@@ -1,5 +1,5 @@
 #include <hector_grid_map_compression/compression_client.h>
-#include <hector_grid_map_compression/CompressedGridLayer.h>
+#include <hector_grid_map_compression/GridLayer.h>
 //#include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
@@ -7,9 +7,8 @@ ImageToMap::ImageToMap() : nh_("~")
 {
   ros::SubscriberStatusCallback connect_cb = boost::bind(&ImageToMap::connectCb, this);
   decompressed_pub_ = nh_.advertise<grid_map_msgs::GridMap>("output", 1, connect_cb, connect_cb);
-  img_pub_ = nh_.advertise<sensor_msgs::Image>("debug_img", 1);
-  compressed_sub_ =
-      nh_.subscribe<hector_grid_map_compression::CompressedGridMap>("input", 1, &ImageToMap::compressedMapCb, this);
+  img_pub_ = nh_.advertise<sensor_msgs::Image>("uncompressed", 1);
+  compressed_sub_ = nh_.subscribe<hector_grid_map_compression::GridMap>("input", 1, &ImageToMap::compressedMapCb, this);
 
   subscribed_ = false;
   map_initialized_ = false;
@@ -40,9 +39,8 @@ void ImageToMap::connectCb()
   }
 }
 
-void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGridMapConstPtr& compressed_map_msg)
+void ImageToMap::compressedMapCb(const hector_grid_map_compression::GridMapConstPtr& compressed_map_msg)
 {
-  std::cout << "\n\n\nCB " << compressed_map_msg->header.seq << "\n";
   if (!map_initialized_)
   {
     // Store all available layers
@@ -57,51 +55,29 @@ void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGr
 
   for (const auto& layer_msg : compressed_map_msg->layers)
   {
-    std::cout << "\nlayer " << layer_msg.name << "\n";
-    // Uncompress image
-    cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
-    try
-    {
-      cv_ptr->image = cv::imdecode(cv::Mat(layer_msg.layer.data), cv::IMREAD_GRAYSCALE);
-    }
-    catch (cv::Exception& e)
-    {
-      ROS_ERROR("Failed to decompress image msg! %s", e.what());
-      return;
-    }
-    const sensor_msgs::ImagePtr img_decompressed = cv_ptr->toImageMsg();
-    img_decompressed->encoding = "mono8";
-
-    if (layer_msg.name == "elevation")
-      img_pub_.publish(*img_decompressed);
+    sensor_msgs::Image img_decompressed = layer_msg.layer;
 
     // Initialize
     if (!map_initialized_)
     {
-      grid_map::GridMapRosConverter::initializeFromImage(*img_decompressed, compressed_map_msg->info.resolution, map_);
+      grid_map::GridMapRosConverter::initializeFromImage(img_decompressed, compressed_map_msg->info.resolution, map_);
       map_initialized_ = true;
     }
 
     double invalid_val = layer_msg.max_val + (layer_msg.max_val - layer_msg.min_val) / 255;
-    std::cout << "min max invalid: " << layer_msg.min_val << " " << layer_msg.max_val << " " << invalid_val << "\n";
-    grid_map::GridMapRosConverter::addLayerFromImage(*img_decompressed, layer_msg.name, map_, layer_msg.min_val,
+    grid_map::GridMapRosConverter::addLayerFromImage(img_decompressed, layer_msg.name, map_, layer_msg.min_val,
                                                      invalid_val);
     grid_map::Matrix& data = map_[layer_msg.name];
 
     // All grid cells with value > max_val are invalid
-    int count = 0;
     for (grid_map::GridMapIterator iterator(map_); !iterator.isPastEnd(); ++iterator)
     {
       const int i = iterator.getLinearIndex();
       if (data(i) > layer_msg.max_val)
       {
-        count++;
         data(i) = std::numeric_limits<double>::quiet_NaN();
       }
-      else
-        std::cout << "  valid: " << data(i) << "\n";
     }
-    std::cout << "invalid count: " << count << "\n";
   }
 
   // Publish as grid map

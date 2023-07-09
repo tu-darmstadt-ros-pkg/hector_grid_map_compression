@@ -1,14 +1,15 @@
 #include <hector_grid_map_compression/compression_server.h>
-#include <hector_grid_map_compression/CompressedGridLayer.h>
-#include <hector_grid_map_compression/CompressedGridMap.h>
+//#include <hector_grid_map_compression/CompressedGridLayer.h>
+//#include <hector_grid_map_compression/CompressedGridMap.h>
+#include <hector_grid_map_compression/GridLayer.h>
+#include <hector_grid_map_compression/GridMap.h>
 
 MapToImage::MapToImage() : nh_("~")
 {
-  //  image_transport::SubscriberStatusCallback connect_cb = boost::bind(&MapToImage::connectCb, this);
   map_sub_ = nh_.subscribe<grid_map_msgs::GridMap>("input", 1, &MapToImage::mapCb, this);
-  compressed_pub_ = nh_.advertise<hector_grid_map_compression::CompressedGridMap>("output", 1);
-  img_pub_ = nh_.advertise<sensor_msgs::Image>("server_img", 1);
-  img_pub_compr_ = nh_.advertise<sensor_msgs::CompressedImage>("server_img/compressed", 1);
+  compressed_pub_ = nh_.advertise<hector_grid_map_compression::GridMap>("output", 1);
+  //  img_pub_ = nh_.advertise<sensor_msgs::Image>("server_img", 1);
+  //  img_pub_compr_ = nh_.advertise<sensor_msgs::CompressedImage>("server_img/compressed", 1);
   if (!nh_.getParam("layers", layers_))
     ROS_WARN("[ImageToMap] No layer specified, compressing all available layers");
 
@@ -37,15 +38,15 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
 {
   grid_map::GridMap map;
   cv_bridge::CvImage image;
-  hector_grid_map_compression::CompressedGridMap compressed_map_msg;
+  hector_grid_map_compression::GridMap map_msg;
 
   // Convert the map msg to grid map
   std::vector<std::string> available_layers = in_msg->layers;
   grid_map::GridMapRosConverter::fromMessage(*in_msg, map, available_layers);
 
   // Fill msg header and info
-  compressed_map_msg.header = in_msg->info.header;
-  compressed_map_msg.info = in_msg->info;
+  map_msg.header = in_msg->info.header;
+  map_msg.info = in_msg->info;
 
   //  for (const auto& layer : layers_)
   std::cout << "\n";
@@ -64,7 +65,6 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
     double high = map.get(layer).maxCoeffOfFinites();
     double low = map.get(layer).minCoeffOfFinites();
     double invalid_val = high + (high - low) / 255;  // max 8bit value
-    std::cout << "  invalid: " << invalid_val << "\n";
 
     // Replace nans with invalid_val
     grid_map::Matrix& data = map[layer];
@@ -76,7 +76,7 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
     }
 
     // Create msg for current layer
-    hector_grid_map_compression::CompressedGridLayer layer_msg;
+    hector_grid_map_compression::GridLayer layer_msg;
     layer_msg.layer.header = in_msg->info.header;
     layer_msg.min_val = low;
     layer_msg.max_val = high;
@@ -84,39 +84,13 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
 
     // Convert map to img
     grid_map::GridMapRosConverter::toCvImage(map, layer, sensor_msgs::image_encodings::MONO8, low, invalid_val, image);
-    img_pub_.publish(image.toImageMsg());
+    layer_msg.layer = *image.toImageMsg();
 
-    // Compression settings
-    std::vector<int> params;
-    params.reserve(2);
-    params[0] = cv::IMWRITE_JPEG_QUALITY;
-    params[1] = 100;  // jpeg quality from 0 to 100
-
-    // Compress img
-    layer_msg.layer.header = in_msg->info.header;
-    layer_msg.layer.format = "jpeg";
-    try
-    {
-      cv::imencode(".jpg", image.image, layer_msg.layer.data, params);
-      //      float cRatio =
-      //          (float)compressed.data.size() / (float)(image.image.rows * image.image.cols * image.image.elemSize());
-      //    std::cout << " compression ratio: " << cRatio << "\n";
-      img_pub_compr_.publish(layer_msg.layer);
-    }
-    catch (cv_bridge::Exception& e)
-    {
-      ROS_WARN("Failed to compress image! %s", e.what());
-    }
-    catch (cv::Exception& e)
-    {
-      ROS_WARN("Failed to compress image! %s", e.what());
-    }
-    compressed_map_msg.layers.push_back(layer_msg);
+    map_msg.layers.push_back(layer_msg);
   }
 
-  std::cout << "publishing " << compressed_map_msg.layers.size() << " layers, frame_id "
-            << compressed_map_msg.header.frame_id << "\n";
-  compressed_pub_.publish(compressed_map_msg);
+  std::cout << "publishing " << map_msg.layers.size() << " layers, frame_id " << map_msg.header.frame_id << "\n";
+  compressed_pub_.publish(map_msg);
 }
 
 int main(int argc, char** argv)

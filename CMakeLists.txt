@@ -27,6 +27,8 @@ add_message_files(
   FILES
   CompressedGridLayer.msg
   CompressedGridMap.msg
+  GridLayer.msg
+  GridMap.msg
 )
 
 generate_messages(

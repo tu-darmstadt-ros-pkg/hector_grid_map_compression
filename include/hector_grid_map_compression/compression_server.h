@@ -19,8 +19,8 @@ private:
   //  image_transport::ImageTransport it_;
   //  image_transport::Publisher image_pub_;
   ros::Publisher compressed_pub_;
-  ros::Publisher img_pub_;
-  ros::Publisher img_pub_compr_;
+  //  ros::Publisher img_pub_;
+  //  ros::Publisher img_pub_compr_;
 
   grid_map::GridMapRosConverter converter_;
 
