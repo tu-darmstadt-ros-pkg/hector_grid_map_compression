@@ -47,16 +47,10 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
   compressed_map_msg.header = in_msg->info.header;
   compressed_map_msg.info = in_msg->info;
 
-  //  for (const auto& layer : layers_)
-  std::cout << "\n";
   for (const auto& layer : available_layers)
   {
-    std::cout << "layer: " << layer << "\n";
     if (std::find(layers_.begin(), layers_.end(), layer) != layers_.end() & !layers_.empty())
-    {
-      std::cout << "skipped\n";
       continue;
-    }
 
     // The GridMapRosConverter::toCvImage method below assings a value
     // To distinguish between invalid and ground pixels on the client side, we set all invalid points to max+1m
@@ -68,7 +62,6 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
     double high = map.get(layer).maxCoeffOfFinites();
     double low = map.get(layer).minCoeffOfFinites();
     double invalid_val = high + ((high - low) / 255) * 10;  // max 8bit value
-    std::cout << "  invalid: " << invalid_val << "\n";
 
     // Replace nans with invalid_val
     grid_map::Matrix& data = map[layer];
@@ -118,8 +111,6 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
     compressed_map_msg.layers.push_back(layer_msg);
   }
 
-  std::cout << "publishing " << compressed_map_msg.layers.size() << " layers, frame_id "
-            << compressed_map_msg.header.frame_id << "\n";
   compressed_pub_.publish(compressed_map_msg);
 }
 
