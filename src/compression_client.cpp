@@ -82,7 +82,7 @@ void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGr
       map_initialized_ = true;
     }
 
-    double invalid_val = layer_msg.max_val + (layer_msg.max_val - layer_msg.min_val) / 255;
+    double invalid_val = layer_msg.max_val + ((layer_msg.max_val - layer_msg.min_val) / 255) * 10;
     std::cout << "min max invalid: " << layer_msg.min_val << " " << layer_msg.max_val << " " << invalid_val << "\n";
     grid_map::GridMapRosConverter::addLayerFromImage(*img_decompressed, layer_msg.name, map_, layer_msg.min_val,
                                                      invalid_val);

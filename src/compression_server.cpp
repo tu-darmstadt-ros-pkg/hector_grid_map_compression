@@ -60,10 +60,14 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
 
     // The GridMapRosConverter::toCvImage method below assings a value
     // To distinguish between invalid and ground pixels on the client side, we set all invalid points to max+1m
-    // The client node receives the max valid height and sets all values above that to invalid
+    // The client node receives the max valid height and sets all values above that to invalid.
+    //
+    // Because of lossy compression (jpg) there will be artifacts around invalid points.
+    // If max+1m is too close to max the client node mistakes some invalid point artifacts for max
+    // => use max+(1m x 10) for invalid points for a bigger difference to max.
     double high = map.get(layer).maxCoeffOfFinites();
     double low = map.get(layer).minCoeffOfFinites();
-    double invalid_val = high + (high - low) / 255;  // max 8bit value
+    double invalid_val = high + ((high - low) / 255) * 10;  // max 8bit value
     std::cout << "  invalid: " << invalid_val << "\n";
 
     // Replace nans with invalid_val
@@ -89,8 +93,8 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
     // Compression settings
     std::vector<int> params;
     params.reserve(2);
-    params[0] = cv::IMWRITE_JPEG_QUALITY;
-    params[1] = 100;  // jpeg quality from 0 to 100
+    params.push_back(cv::IMWRITE_JPEG_QUALITY);
+    params.push_back(100);  // jpeg quality from 0 to 100
 
     // Compress img
     layer_msg.layer.header = in_msg->info.header;
