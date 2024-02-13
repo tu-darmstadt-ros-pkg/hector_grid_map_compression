@@ -1,19 +1,16 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(hector_grid_map_compression)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  std_msgs
-  sensor_msgs
-  grid_map_msgs
-  grid_map_core
-  grid_map_cv
-  grid_map_ros
-  eigen_conversions
-  cv_bridge
-  image_transport  
-  message_generation
-)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(grid_map_msgs REQUIRED)
+find_package(grid_map_core REQUIRED)
+find_package(grid_map_cv REQUIRED)
+find_package(grid_map_ros REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(image_transport REQUIRED)
 
 find_package(OpenCV REQUIRED COMPONENTS
   opencv_highgui
@@ -22,49 +19,36 @@ find_package(OpenCV REQUIRED COMPONENTS
 
 include_directories(include ${OpenCV_INCLUDE_DIRS})
 
-add_message_files(
-  DIRECTORY msg
-  FILES
-  CompressedGridLayer.msg
-  CompressedGridMap.msg
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/CompressedGridLayer.msg"
+  "msg/CompressedGridMap.msg"
+  DEPENDENCIES std_msgs sensor_msgs grid_map_msgs
 )
+ament_export_dependencies(rosidl_default_runtime)
 
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  sensor_msgs
-  grid_map_msgs
-)
-
-catkin_package(
-  INCLUDE_DIRS 
-  include
-#  LIBRARIES
-   CATKIN_DEPENDS roscpp message_runtime
-#  DEPENDS system_lib
-)
+rosidl_get_typesupport_target(cpp_typesupport_target
+  ${PROJECT_NAME} rosidl_typesupport_cpp)
 
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
 )
 
 add_executable(hector_grid_map_compression_server src/compression_server.cpp)
-add_dependencies(hector_grid_map_compression_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} )
-target_link_libraries(hector_grid_map_compression_server ${catkin_LIBRARIES} )
+ament_target_dependencies(hector_grid_map_compression_server rclcpp image_transport grid_map_msgs grid_map_ros cv_bridge OpenCV)
+target_link_libraries(hector_grid_map_compression_server "${cpp_typesupport_target}")
 
 add_executable(hector_grid_map_compression_client src/compression_client.cpp)
-add_dependencies(hector_grid_map_compression_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} )
-target_link_libraries(hector_grid_map_compression_client ${catkin_LIBRARIES} )
+ament_target_dependencies(hector_grid_map_compression_client rclcpp image_transport grid_map_ros grid_map_msgs OpenCV)
+target_link_libraries(hector_grid_map_compression_client "${cpp_typesupport_target}")
 
 install(TARGETS hector_grid_map_compression_server hector_grid_map_compression_client
-    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  )
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 install(DIRECTORY
-  launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  launch
+  DESTINATION share/${PROJECT_NAME}
 )
+
+ament_package()

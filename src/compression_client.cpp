@@ -1,60 +1,58 @@
 #include <hector_grid_map_compression/compression_client.h>
-#include <hector_grid_map_compression/CompressedGridLayer.h>
+#include <hector_grid_map_compression/msg/compressed_grid_layer.hpp>
 //#include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
-ImageToMap::ImageToMap() : nh_("~")
-{
-  ros::SubscriberStatusCallback connect_cb = boost::bind(&ImageToMap::connectCb, this);
-  decompressed_pub_ = nh_.advertise<grid_map_msgs::GridMap>("output", 1, connect_cb, connect_cb);
-  img_pub_ = nh_.advertise<sensor_msgs::Image>("debug_img", 1);
-  compressed_sub_ =
-      nh_.subscribe<hector_grid_map_compression::CompressedGridMap>("input", 1, &ImageToMap::compressedMapCb, this);
+using CompressedGridMapMsg = hector_grid_map_compression::msg::CompressedGridMap;
 
-  subscribed_ = false;
+ImageToMap::ImageToMap() : Node("hector_grid_map_compression_client")
+{
+  decompressed_pub_ = this->create_publisher<grid_map_msgs::msg::GridMap>("output", 1);
+  img_pub_ = this->create_publisher<sensor_msgs::msg::Image>("debug_img", 1);
+  auto compressed_cb = std::bind(&ImageToMap::compressedMapCb, this, std::placeholders::_1);
+  compressed_sub_ = this->create_subscription<CompressedGridMapMsg>("input", 1, compressed_cb);
+
+  // TODO there is no SubscriberStatusCallback in ROS2 yet
+  // subscribed_ = false;
   map_initialized_ = false;
-  connectCb();
+  // connectCb();
 
   //  map_.setBasicLayers({ layer_ });
 }
 
 void ImageToMap::connectCb()
 {
-  if (true)
+  if (decompressed_pub_->get_subscription_count() == 0)
   {
-    subscribed_ = true;
-    return;
-  }
-  if (decompressed_pub_.getNumSubscribers() == 0)
-  {
-    compressed_sub_.shutdown();
+    compressed_sub_.reset();
     subscribed_ = false;
-    ROS_INFO("Unsubscribing");
+    RCLCPP_INFO(this->get_logger(), "Unsubscribing");
   }
   else
   {
-    compressed_sub_ = nh_.subscribe("input", 1, &ImageToMap::compressedMapCb, this);
+    auto compressed_cb = std::bind(&ImageToMap::compressedMapCb, this, std::placeholders::_1);
+    compressed_sub_ = this->create_subscription<CompressedGridMapMsg>("input", 1, compressed_cb);
     if (!subscribed_)
-      ROS_INFO("Subscribing");
+      RCLCPP_INFO(this->get_logger(), "Subscribing");
     subscribed_ = true;
   }
 }
 
-void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGridMapConstPtr& compressed_map_msg)
+void ImageToMap::compressedMapCb(const CompressedGridMapMsg& compressed_map_msg)
 {
   if (!map_initialized_)
   {
     // Store all available layers
-    for (const auto& layer : compressed_map_msg->layers)
+    for (const auto& layer : compressed_map_msg.layers)
       layers_.push_back(layer.name);
     if (layers_.empty())
     {
-      ROS_WARN("Received message contains no layers");
+      RCLCPP_WARN(this->get_logger(), "Received message contains no layers");
       return;
     }
   }
 
-  for (const auto& layer_msg : compressed_map_msg->layers)
+  for (const auto& layer_msg : compressed_map_msg.layers)
   {
     // Uncompress image
     cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
@@ -64,19 +62,19 @@ void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGr
     }
     catch (cv::Exception& e)
     {
-      ROS_ERROR("Failed to decompress image msg! %s", e.what());
+      RCLCPP_ERROR(this->get_logger(), "Failed to decompress image msg! %s", e.what());
       return;
     }
-    const sensor_msgs::ImagePtr img_decompressed = cv_ptr->toImageMsg();
+    std::shared_ptr<sensor_msgs::msg::Image> img_decompressed = cv_ptr->toImageMsg();
     img_decompressed->encoding = "mono8";
 
     if (layer_msg.name == "elevation")
-      img_pub_.publish(*img_decompressed);
+      img_pub_->publish(*img_decompressed);
 
     // Initialize
     if (!map_initialized_)
     {
-      grid_map::GridMapRosConverter::initializeFromImage(*img_decompressed, compressed_map_msg->info.resolution, map_);
+      grid_map::GridMapRosConverter::initializeFromImage(*img_decompressed, compressed_map_msg.info.resolution, map_);
       map_initialized_ = true;
     }
 
@@ -97,21 +95,21 @@ void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGr
   }
 
   // Publish as grid map
-  grid_map_msgs::GridMap map_msg;
-  grid_map::GridMapRosConverter::toMessage(map_, map_msg);
-  map_msg.basic_layers.push_back("elevation");
-  map_msg.info = compressed_map_msg->info;
-  decompressed_pub_.publish(map_msg);
+  std::unique_ptr<grid_map_msgs::msg::GridMap> map_msg = grid_map::GridMapRosConverter::toMessage(map_);
+  map_msg->basic_layers.push_back("elevation");
+  map_msg->info = compressed_map_msg.info;
+  map_msg->header = compressed_map_msg.header;
+  decompressed_pub_->publish(*map_msg);
 }
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "hector_grid_map_compression_client");
+  rclcpp::init(argc, argv);
 
-  ROS_INFO("Starting compression_client");
-  ImageToMap image_to_map;
+  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Starting compression_client");
 
-  ros::spin();
+  rclcpp::spin(std::make_shared<ImageToMap>());
+  rclcpp::shutdown();
 
   return 0;
 }

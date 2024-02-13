@@ -1,23 +1,22 @@
 #pragma once
 
-#include <ros/ros.h>
-#include <image_transport/image_transport.h>
+#include <rclcpp/rclcpp.hpp>
+#include <image_transport/image_transport.hpp>
 #include <grid_map_ros/GridMapRosConverter.hpp>
-#include <grid_map_msgs/GridMap.h>
+#include <grid_map_msgs/msg/grid_map.hpp>
 #include <grid_map_ros/grid_map_ros.hpp>
-#include <hector_grid_map_compression/CompressedGridMap.h>
+#include <hector_grid_map_compression/msg/compressed_grid_map.hpp>
 
-class ImageToMap
+class ImageToMap : public rclcpp::Node
 {
 public:
   ImageToMap();
   ~ImageToMap() = default;
 
 private:
-  ros::NodeHandle nh_;
-  ros::Publisher decompressed_pub_;
-  ros::Publisher img_pub_;
-  ros::Subscriber compressed_sub_;
+  rclcpp::Publisher<grid_map_msgs::msg::GridMap>::SharedPtr decompressed_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr img_pub_;
+  rclcpp::Subscription<hector_grid_map_compression::msg::CompressedGridMap>::SharedPtr compressed_sub_;
 
   grid_map::GridMapRosConverter converter_;
   grid_map::GridMap map_;
@@ -28,5 +27,5 @@ private:
   bool subscribed_;
 
   void connectCb();
-  void compressedMapCb(const hector_grid_map_compression::CompressedGridMapConstPtr& msg);
+  void compressedMapCb(const hector_grid_map_compression::msg::CompressedGridMap& msg);
 };

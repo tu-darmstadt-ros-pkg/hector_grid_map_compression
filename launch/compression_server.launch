@@ -1,13 +1,12 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="layer" default="elevation"/>
-  <arg name="grid_map_topic" default="/elevation_mapping/elevation_map"/>
+  <let name="layer" value="elevation"/>
+  <let name="grid_map_topic" value="/elevation_mapping/elevation_map"/>
 
-  <node ns="hector_grid_map_compression" name="server" type="hector_grid_map_compression_server" pkg="hector_grid_map_compression" output="screen">
-    <remap from="~/input" to="$(arg grid_map_topic)"/>
-    <remap from="~/output" to="compressed"/>
-    <remap from="~/map_info" to="map_info"/>
-    <param name="~/layer" value="$(arg layer)"/>
+  <node namespace="hector_grid_map_compression" name="server" exec="hector_grid_map_compression_server" pkg="hector_grid_map_compression" output="screen">
+    <remap from="input" to="$(var grid_map_topic)"/>
+    <remap from="output" to="compressed"/>
+    <param name="layer" value="$(var layer)"/>
   </node>
 </launch>
