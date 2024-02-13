@@ -12,34 +12,22 @@ ImageToMap::ImageToMap() : Node("hector_grid_map_compression_client")
   auto compressed_cb = std::bind(&ImageToMap::compressedMapCb, this, std::placeholders::_1);
   compressed_sub_ = this->create_subscription<CompressedGridMapMsg>("input", 1, compressed_cb);
 
-  // TODO there is no SubscriberStatusCallback in ROS2 yet
-  // subscribed_ = false;
   map_initialized_ = false;
-  // connectCb();
 
   //  map_.setBasicLayers({ layer_ });
 }
 
-void ImageToMap::connectCb()
-{
-  if (decompressed_pub_->get_subscription_count() == 0)
-  {
-    compressed_sub_.reset();
-    subscribed_ = false;
-    RCLCPP_INFO(this->get_logger(), "Unsubscribing");
-  }
-  else
-  {
-    auto compressed_cb = std::bind(&ImageToMap::compressedMapCb, this, std::placeholders::_1);
-    compressed_sub_ = this->create_subscription<CompressedGridMapMsg>("input", 1, compressed_cb);
-    if (!subscribed_)
-      RCLCPP_INFO(this->get_logger(), "Subscribing");
-    subscribed_ = true;
-  }
-}
-
 void ImageToMap::compressedMapCb(const CompressedGridMapMsg& compressed_map_msg)
 {
+  // In ROS1 we can use the SubscriberStatusCallback to lazy connect to this callback,
+  // but in ROS2 there is no SubscriberStatusCallback yet.
+  // Avoid unnecessary computation by returning.
+  if (decompressed_pub_->get_subscription_count() == 0)
+  {
+    RCLCPP_INFO(this->get_logger(), "No subscriptions. Don't decompress.");
+    return;
+  }
+
   if (!map_initialized_)
   {
     // Store all available layers
