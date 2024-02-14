@@ -49,7 +49,7 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
 
   for (const auto& layer : available_layers)
   {
-    if (std::find(layers_.begin(), layers_.end(), layer) != layers_.end() & !layers_.empty())
+    if (std::find(layers_.begin(), layers_.end(), layer) == layers_.end() & !layers_.empty())
       continue;
 
     // The GridMapRosConverter::toCvImage method below assings a value

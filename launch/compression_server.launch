@@ -8,6 +8,6 @@
     <remap from="~/input" to="$(arg grid_map_topic)"/>
     <remap from="~/output" to="compressed"/>
     <remap from="~/map_info" to="map_info"/>
-    <param name="~/layer" value="$(arg layer)"/>
+    <rosparam param="layers" subst_value="true">[$(arg layer)]</rosparam>
   </node>
 </launch>
