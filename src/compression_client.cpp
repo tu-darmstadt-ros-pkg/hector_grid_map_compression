@@ -5,12 +5,13 @@
 
 Decompression::Decompression() : nh_("~")
 {
-  ros::SubscriberStatusCallback connect_cb = boost::bind(&ImageToMap::connectCb, this);
+  ros::SubscriberStatusCallback connect_cb = boost::bind(&Decompression::connectCb, this);
   decompressed_pub_ = nh_.advertise<grid_map_msgs::GridMap>("output", 1, connect_cb, connect_cb);
-  img_pub_ = nh_.advertise<sensor_msgs::Image>("debug_img", 1);
+  // img_pub_ = nh_.advertise<sensor_msgs::Image>("debug_img", 1);  
   compressed_sub_ =
-      nh_.subscribe<hector_grid_map_compression::CompressedGridMap>("input", 1, &ImageToMap::compressedMapCb, this);
-
+      nh_.subscribe<hector_grid_map_compression::CompressedGridMap>("input", 1, &Decompression::compressedMapCb, this);
+  ROS_INFO("[compression_client] Publishing to %s", decompressed_pub_.getTopic().c_str());
+  ROS_INFO("[compression_client] Subscribing to %s", compressed_sub_.getTopic().c_str());
   subscribed_ = false;
   map_initialized_ = false;
   connectCb();
@@ -29,15 +30,17 @@ void Decompression::connectCb()
   }
   else
   {
-    compressed_sub_ = nh_.subscribe("input", 1, &ImageToMap::compressedMapCb, this);
-    ROS_INFO("[compression_client] Subscribing to %s", compressed_sub_.getTopic().c_str());
-    subscribed_ = true;
+    if (!subscribed_)
+    {
+      compressed_sub_ = nh_.subscribe("input", 1, &Decompression::compressedMapCb, this);
+      ROS_INFO("[compression_client] Subscribing");
+      subscribed_ = true;
+    }
   }  
 }
 
 void Decompression::compressedMapCb(const hector_grid_map_compression::CompressedGridMapConstPtr& compressed_map_msg)
 {
-  ROS_INFO("[compression_client] Received compressed map");
   if (!map_initialized_)
   {
     // Store all available layers
@@ -66,8 +69,8 @@ void Decompression::compressedMapCb(const hector_grid_map_compression::Compresse
     const sensor_msgs::ImagePtr img_decompressed = cv_ptr->toImageMsg();
     img_decompressed->encoding = "mono8";
 
-    if (layer_msg.name == "elevation")
-      img_pub_.publish(*img_decompressed);
+    // if (layer_msg.name == "elevation")
+    //   img_pub_.publish(*img_decompressed);
 
     // Initialize
     if (!map_initialized_)
@@ -99,7 +102,7 @@ void Decompression::compressedMapCb(const hector_grid_map_compression::Compresse
   map_msg.info = compressed_map_msg->info;
   decompressed_pub_.publish(map_msg);
 
-  ROS_INFO_THROTTLE(5, "[compression_client] Published decompressed map");
+  ROS_INFO_THROTTLE(5, "[compression_client] Publishing decompressed map");
 }
 
 int main(int argc, char** argv)

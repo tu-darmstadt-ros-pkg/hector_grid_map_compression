@@ -4,11 +4,13 @@
 
 Compression::Compression() : nh_("~")
 {
-  //  image_transport::SubscriberStatusCallback connect_cb = boost::bind(&MapToImage::connectCb, this);
-  map_sub_ = nh_.subscribe<grid_map_msgs::GridMap>("input", 1, &MapToImage::mapCb, this);
-  compressed_pub_ = nh_.advertise<hector_grid_map_compression::CompressedGridMap>("output", 1);
-  img_pub_ = nh_.advertise<sensor_msgs::Image>("server_img", 1);
-  img_pub_compr_ = nh_.advertise<sensor_msgs::CompressedImage>("server_img/compressed", 1);
+  ros::SubscriberStatusCallback connect_cb = boost::bind(&Compression::connectCb, this);
+  map_sub_ = nh_.subscribe<grid_map_msgs::GridMap>("input", 1, &Compression::mapCb, this);
+  compressed_pub_ = nh_.advertise<hector_grid_map_compression::CompressedGridMap>("output", 1, connect_cb, connect_cb);
+  ROS_INFO("[compression_server] Publishing to %s", compressed_pub_.getTopic().c_str());
+  ROS_INFO("[compression_server] Subscribing to %s", map_sub_.getTopic().c_str());
+  // img_pub_ = nh_.advertise<sensor_msgs::Image>("server_img", 1);
+  // img_pub_compr_ = nh_.advertise<sensor_msgs::CompressedImage>("server_img/compressed", 1);
   if (!nh_.getParam("layers", layers_))
     ROS_WARN("[compression_server]  No layer specified, compressing all available layers");
 
@@ -18,7 +20,8 @@ Compression::Compression() : nh_("~")
 
 void Compression::connectCb()
 {
-  if (false && compressed_pub_.getNumSubscribers() == 0)
+  ROS_INFO("[compression_server] Connected subscribers: %d", compressed_pub_.getNumSubscribers());
+  if (compressed_pub_.getNumSubscribers() == 0)
   {
     map_sub_.shutdown();
     subscribed_ = false;
@@ -26,10 +29,12 @@ void Compression::connectCb()
   }
   else
   {
-    map_sub_ = nh_.subscribe<grid_map_msgs::GridMap>("input", 1, &MapToImage::mapCb, this);
     if (!subscribed_)
+    {
+      map_sub_ = nh_.subscribe<grid_map_msgs::GridMap>("input", 1, &Compression::mapCb, this);    
+      subscribed_ = true;
       ROS_INFO("[compression_server] Subscribing");
-    subscribed_ = true;
+    }
   }
 }
 
