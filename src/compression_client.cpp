@@ -20,28 +20,24 @@ ImageToMap::ImageToMap() : nh_("~")
 
 void ImageToMap::connectCb()
 {
-  if (true)
-  {
-    subscribed_ = true;
-    return;
-  }
+  ROS_INFO("[compression_client] Connected subscribers: %d", decompressed_pub_.getNumSubscribers());
   if (decompressed_pub_.getNumSubscribers() == 0)
   {
     compressed_sub_.shutdown();
     subscribed_ = false;
-    ROS_INFO("Unsubscribing");
+    ROS_INFO("[compression_client] Unsubscribing");
   }
   else
   {
     compressed_sub_ = nh_.subscribe("input", 1, &ImageToMap::compressedMapCb, this);
-    if (!subscribed_)
-      ROS_INFO("Subscribing");
+    ROS_INFO("[compression_client] Subscribing to %s", compressed_sub_.getTopic().c_str());
     subscribed_ = true;
-  }
+  }  
 }
 
 void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGridMapConstPtr& compressed_map_msg)
 {
+  ROS_INFO("[compression_client] Received compressed map");
   if (!map_initialized_)
   {
     // Store all available layers
@@ -49,7 +45,7 @@ void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGr
       layers_.push_back(layer.name);
     if (layers_.empty())
     {
-      ROS_WARN("Received message contains no layers");
+      ROS_WARN("[compression_client] Received message contains no layers");
       return;
     }
   }
@@ -64,7 +60,7 @@ void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGr
     }
     catch (cv::Exception& e)
     {
-      ROS_ERROR("Failed to decompress image msg! %s", e.what());
+      ROS_ERROR("[compression_client] Failed to decompress image msg! %s", e.what());
       return;
     }
     const sensor_msgs::ImagePtr img_decompressed = cv_ptr->toImageMsg();
@@ -102,13 +98,15 @@ void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGr
   map_msg.basic_layers.push_back("elevation");
   map_msg.info = compressed_map_msg->info;
   decompressed_pub_.publish(map_msg);
+
+  ROS_INFO_THROTTLE(5, "[compression_client] Published decompressed map");
 }
 
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "hector_grid_map_compression_client");
 
-  ROS_INFO("Starting compression_client");
+  ROS_INFO("[compression_client] Starting compression_client");
   ImageToMap image_to_map;
 
   ros::spin();

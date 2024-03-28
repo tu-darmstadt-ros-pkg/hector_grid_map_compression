@@ -10,7 +10,7 @@ MapToImage::MapToImage() : nh_("~")
   img_pub_ = nh_.advertise<sensor_msgs::Image>("server_img", 1);
   img_pub_compr_ = nh_.advertise<sensor_msgs::CompressedImage>("server_img/compressed", 1);
   if (!nh_.getParam("layers", layers_))
-    ROS_WARN("[ImageToMap] No layer specified, compressing all available layers");
+    ROS_WARN("[compression_server]  No layer specified, compressing all available layers");
 
   subscribed_ = false;
   connectCb();
@@ -22,13 +22,13 @@ void MapToImage::connectCb()
   {
     map_sub_.shutdown();
     subscribed_ = false;
-    ROS_INFO("Unsubscribing");
+    ROS_INFO("[compression_server] Unsubscribing");
   }
   else
   {
     map_sub_ = nh_.subscribe<grid_map_msgs::GridMap>("input", 1, &MapToImage::mapCb, this);
     if (!subscribed_)
-      ROS_INFO("Subscribing");
+      ROS_INFO("[compression_server] Subscribing");
     subscribed_ = true;
   }
 }
@@ -102,23 +102,27 @@ void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
     }
     catch (cv_bridge::Exception& e)
     {
-      ROS_WARN("Failed to compress image! %s", e.what());
+      ROS_WARN("[compression_server] Failed to compress image! %s", e.what());
     }
     catch (cv::Exception& e)
     {
-      ROS_WARN("Failed to compress image! %s", e.what());
+      ROS_WARN("[compression_server] Failed to compress image! %s", e.what());
     }
     compressed_map_msg.layers.push_back(layer_msg);
   }
 
   compressed_pub_.publish(compressed_map_msg);
+  std::stringstream ss;
+  for (const auto& layer : compressed_map_msg.layers)
+    ss << "<" << layer.name << "> " << layer.layer.data.size() << " bytes ";
+  ROS_INFO_THROTTLE(5, "[compression_server] Publishing compressed map, sizes: %s", ss.str().c_str());
 }
 
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "hector_grid_map_compression_server");
 
-  ROS_INFO("Starting compression_server");
+  ROS_INFO("[compression_server] Starting compression_server");
   MapToImage map_to_image;
 
   ros::spin();
