@@ -1,12 +1,12 @@
 #include <hector_grid_map_compression/compression_server.h>
-#include <hector_grid_map_compression/CompressedGridLayer.h>
-#include <hector_grid_map_compression/CompressedGridMap.h>
+#include <hector_grid_map_compression_msgs/CompressedGridLayer.h>
+#include <hector_grid_map_compression_msgs/CompressedGridMap.h>
 
 Compression::Compression() : nh_("~")
 {
   ros::SubscriberStatusCallback connect_cb = boost::bind(&Compression::connectCb, this);
   map_sub_ = nh_.subscribe<grid_map_msgs::GridMap>("input", 1, &Compression::mapCb, this);
-  compressed_pub_ = nh_.advertise<hector_grid_map_compression::CompressedGridMap>("output", 1, connect_cb, connect_cb);
+  compressed_pub_ = nh_.advertise<hector_grid_map_compression_msgs::CompressedGridMap>("output", 1, connect_cb, connect_cb);
   ROS_INFO("[compression_server] Publishing to %s", compressed_pub_.getTopic().c_str());
   ROS_INFO("[compression_server] Subscribing to %s", map_sub_.getTopic().c_str());
   // img_pub_ = nh_.advertise<sensor_msgs::Image>("server_img", 1);
@@ -42,7 +42,7 @@ void Compression::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
 {
   grid_map::GridMap map;
   cv_bridge::CvImage image;
-  hector_grid_map_compression::CompressedGridMap compressed_map_msg;
+  hector_grid_map_compression_msgs::CompressedGridMap compressed_map_msg;
 
   // Convert the map msg to grid map
   std::vector<std::string> available_layers = in_msg->layers;
@@ -78,7 +78,7 @@ void Compression::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
     }
 
     // Create msg for current layer
-    hector_grid_map_compression::CompressedGridLayer layer_msg;
+    hector_grid_map_compression_msgs::CompressedGridLayer layer_msg;
     layer_msg.layer.header = in_msg->info.header;
     layer_msg.min_val = low;
     layer_msg.max_val = high;

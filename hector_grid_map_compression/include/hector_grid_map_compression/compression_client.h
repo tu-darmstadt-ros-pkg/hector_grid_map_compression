@@ -5,7 +5,7 @@
 #include <grid_map_ros/GridMapRosConverter.hpp>
 #include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
-#include <hector_grid_map_compression/CompressedGridMap.h>
+#include <hector_grid_map_compression_msgs/CompressedGridMap.h>
 
 class Decompression
 {
@@ -28,5 +28,5 @@ private:
   bool subscribed_;
 
   void connectCb();
-  void compressedMapCb(const hector_grid_map_compression::CompressedGridMapConstPtr& msg);
+  void compressedMapCb(const hector_grid_map_compression_msgs::CompressedGridMapConstPtr& msg);
 };

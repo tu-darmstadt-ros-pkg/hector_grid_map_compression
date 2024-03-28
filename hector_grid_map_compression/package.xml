@@ -21,6 +21,7 @@
   <depend>grid_map_msgs</depend>
   <depend>grid_map_ros</depend>
   <depend>grid_map_cv</depend>
+  <depend>hector_grid_map_compression_msgs</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
@@ -28,8 +29,6 @@
   <depend>eigen_conversions</depend>
   <depend>cv_bridge</depend>
   <depend>image_transport</depend>
-  <build_depend>message_generation</build_depend>
-  <exec_depend>message_runtime</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

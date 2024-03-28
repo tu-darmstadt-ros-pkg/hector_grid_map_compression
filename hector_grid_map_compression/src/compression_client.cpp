@@ -1,5 +1,5 @@
 #include <hector_grid_map_compression/compression_client.h>
-#include <hector_grid_map_compression/CompressedGridLayer.h>
+#include <hector_grid_map_compression_msgs/CompressedGridLayer.h>
 //#include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
@@ -9,7 +9,7 @@ Decompression::Decompression() : nh_("~")
   decompressed_pub_ = nh_.advertise<grid_map_msgs::GridMap>("output", 1, connect_cb, connect_cb);
   // img_pub_ = nh_.advertise<sensor_msgs::Image>("debug_img", 1);  
   compressed_sub_ =
-      nh_.subscribe<hector_grid_map_compression::CompressedGridMap>("input", 1, &Decompression::compressedMapCb, this);
+      nh_.subscribe<hector_grid_map_compression_msgs::CompressedGridMap>("input", 1, &Decompression::compressedMapCb, this);
   ROS_INFO("[compression_client] Publishing to %s", decompressed_pub_.getTopic().c_str());
   ROS_INFO("[compression_client] Subscribing to %s", compressed_sub_.getTopic().c_str());
   subscribed_ = false;
@@ -39,7 +39,7 @@ void Decompression::connectCb()
   }  
 }
 
-void Decompression::compressedMapCb(const hector_grid_map_compression::CompressedGridMapConstPtr& compressed_map_msg)
+void Decompression::compressedMapCb(const hector_grid_map_compression_msgs::CompressedGridMapConstPtr& compressed_map_msg)
 {
   if (!map_initialized_)
   {
