@@ -2,7 +2,7 @@
 #include <hector_grid_map_compression/CompressedGridLayer.h>
 #include <hector_grid_map_compression/CompressedGridMap.h>
 
-MapToImage::MapToImage() : nh_("~")
+Compression::Compression() : nh_("~")
 {
   //  image_transport::SubscriberStatusCallback connect_cb = boost::bind(&MapToImage::connectCb, this);
   map_sub_ = nh_.subscribe<grid_map_msgs::GridMap>("input", 1, &MapToImage::mapCb, this);
@@ -16,7 +16,7 @@ MapToImage::MapToImage() : nh_("~")
   connectCb();
 }
 
-void MapToImage::connectCb()
+void Compression::connectCb()
 {
   if (false && compressed_pub_.getNumSubscribers() == 0)
   {
@@ -33,7 +33,7 @@ void MapToImage::connectCb()
   }
 }
 
-void MapToImage::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
+void Compression::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
 {
   grid_map::GridMap map;
   cv_bridge::CvImage image;
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "hector_grid_map_compression_server");
 
   ROS_INFO("[compression_server] Starting compression_server");
-  MapToImage map_to_image;
+  Compression compression;
 
   ros::spin();
 

@@ -3,7 +3,7 @@
 //#include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
-ImageToMap::ImageToMap() : nh_("~")
+Decompression::Decompression() : nh_("~")
 {
   ros::SubscriberStatusCallback connect_cb = boost::bind(&ImageToMap::connectCb, this);
   decompressed_pub_ = nh_.advertise<grid_map_msgs::GridMap>("output", 1, connect_cb, connect_cb);
@@ -18,7 +18,7 @@ ImageToMap::ImageToMap() : nh_("~")
   //  map_.setBasicLayers({ layer_ });
 }
 
-void ImageToMap::connectCb()
+void Decompression::connectCb()
 {
   ROS_INFO("[compression_client] Connected subscribers: %d", decompressed_pub_.getNumSubscribers());
   if (decompressed_pub_.getNumSubscribers() == 0)
@@ -35,7 +35,7 @@ void ImageToMap::connectCb()
   }  
 }
 
-void ImageToMap::compressedMapCb(const hector_grid_map_compression::CompressedGridMapConstPtr& compressed_map_msg)
+void Decompression::compressedMapCb(const hector_grid_map_compression::CompressedGridMapConstPtr& compressed_map_msg)
 {
   ROS_INFO("[compression_client] Received compressed map");
   if (!map_initialized_)
@@ -107,7 +107,7 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "hector_grid_map_compression_client");
 
   ROS_INFO("[compression_client] Starting compression_client");
-  ImageToMap image_to_map;
+  Decompression decompression;
 
   ros::spin();
 

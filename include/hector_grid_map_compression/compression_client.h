@@ -7,11 +7,11 @@
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <hector_grid_map_compression/CompressedGridMap.h>
 
-class ImageToMap
+class Decompression
 {
 public:
-  ImageToMap();
-  ~ImageToMap() = default;
+  Decompression();
+  ~Decompression() = default;
 
 private:
   ros::NodeHandle nh_;

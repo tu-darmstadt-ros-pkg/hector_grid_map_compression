@@ -7,11 +7,11 @@
 #include <opencv2/imgcodecs.hpp>
 #include <cv_bridge/cv_bridge.h>
 
-class MapToImage
+class Compression
 {
 public:
-  MapToImage();
-  ~MapToImage() = default;
+  Compression();
+  ~Compression() = default;
 
 private:
   ros::NodeHandle nh_;
