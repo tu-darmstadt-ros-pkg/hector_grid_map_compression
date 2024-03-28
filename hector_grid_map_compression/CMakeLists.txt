@@ -12,7 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   hector_grid_map_compression_msgs
   eigen_conversions
   cv_bridge
-  image_transport  
+  image_transport
+  nodelet
 )
 
 find_package(OpenCV REQUIRED COMPONENTS
@@ -40,8 +41,9 @@ include_directories(
 add_library(${PROJECT_NAME} src/client.cpp src/server.cpp)
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
-# TODO nodelet
-  
+add_library(${PROJECT_NAME}_nodelet src/server_nodelet.cpp)
+target_link_libraries(${PROJECT_NAME}_nodelet ${PROJECT_NAME}) 
+
 add_executable(hector_grid_map_compression_server src/server_node.cpp)
 add_dependencies(hector_grid_map_compression_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} )
 target_link_libraries(hector_grid_map_compression_server ${PROJECT_NAME} )

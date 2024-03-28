@@ -7,8 +7,11 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "hector_grid_map_compression_server");
 
+  ros::NodeHandle nh;
+  ros::NodeHandle pnh("~");
+
   ROS_INFO("[compression_server] Starting compression_server");
-  Compression compression;
+  Compression compression(nh, pnh);
 
   ros::spin();
 

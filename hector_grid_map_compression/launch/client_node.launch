@@ -5,8 +5,7 @@
   <arg name="output_topic" default="decompressed"/>
 
   <node ns="hector_grid_map_compression" name="client" type="hector_grid_map_compression_client" pkg="hector_grid_map_compression" output="screen">
-    <remap from="~/input" to="compressed"/>
-    <remap from="~/output" to="$(arg output_topic)"/>
-<!--    <param name="~/layer" value="$(arg layer)"/>-->
+    <remap from="input" to="compressed"/>
+    <remap from="output" to="$(arg output_topic)"/>
   </node>
 </launch>

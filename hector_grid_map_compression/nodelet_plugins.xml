@@ -1,0 +1,7 @@
+<library path="lib/libhector_grid_map_compression_nodelet">
+  <class name="hector_grid_map_compression/GridMapCompressionNodelet" type="hector_grid_map_compression::GridMapCompressionNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Compresses grid maps.
+    </description>
+  </class>
+</library>

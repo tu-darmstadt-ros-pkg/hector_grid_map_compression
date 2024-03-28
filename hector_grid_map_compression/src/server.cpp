@@ -5,17 +5,24 @@
 namespace hector_grid_map_compression
 {
 
-Compression::Compression() : nh_("~")
+Compression::Compression(ros::NodeHandle& nh_,ros::NodeHandle& pnh_) : nh_(nh_)
 {
+
   ros::SubscriberStatusCallback connect_cb = boost::bind(&Compression::connectCb, this);
   map_sub_ = nh_.subscribe<grid_map_msgs::GridMap>("input", 1, &Compression::mapCb, this);
   compressed_pub_ = nh_.advertise<hector_grid_map_compression_msgs::CompressedGridMap>("output", 1, connect_cb, connect_cb);
   ROS_INFO("[compression_server] Publishing to %s", compressed_pub_.getTopic().c_str());
   ROS_INFO("[compression_server] Subscribing to %s", map_sub_.getTopic().c_str());
-  // img_pub_ = nh_.advertise<sensor_msgs::Image>("server_img", 1);
-  // img_pub_compr_ = nh_.advertise<sensor_msgs::CompressedImage>("server_img/compressed", 1);
+
   if (!nh_.getParam("layers", layers_))
-    ROS_WARN("[compression_server]  No layer specified, compressing all available layers");
+    ROS_WARN("[compression_server] No layer specified, compressing all available layers");
+  else
+  {
+    ROS_INFO("[compression_server] Compressing layers:");
+    for (const auto& layer : layers_)
+      ROS_INFO("[compression_server]  - %s", layer.c_str());
+  }
+
 
   subscribed_ = false;
   connectCb();

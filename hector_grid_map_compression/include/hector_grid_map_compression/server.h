@@ -13,7 +13,7 @@ namespace hector_grid_map_compression
 class Compression
 {
 public:
-  Compression();
+  Compression(ros::NodeHandle& nh_,ros::NodeHandle& pnh_);
   ~Compression() = default;
 
 private:
