@@ -1,7 +1,10 @@
-#include <hector_grid_map_compression/compression_client.h>
+#include <hector_grid_map_compression/client.h>
 #include <hector_grid_map_compression_msgs/CompressedGridLayer.h>
 //#include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
+
+namespace hector_grid_map_compression
+{
 
 Decompression::Decompression() : nh_("~")
 {
@@ -104,15 +107,4 @@ void Decompression::compressedMapCb(const hector_grid_map_compression_msgs::Comp
 
   ROS_INFO_THROTTLE(5, "[compression_client] Publishing decompressed map");
 }
-
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "hector_grid_map_compression_client");
-
-  ROS_INFO("[compression_client] Starting compression_client");
-  Decompression decompression;
-
-  ros::spin();
-
-  return 0;
-}
+}  // namespace hector_grid_map_compression

@@ -1,6 +1,9 @@
-#include <hector_grid_map_compression/compression_server.h>
+#include <hector_grid_map_compression/server.h>
 #include <hector_grid_map_compression_msgs/CompressedGridLayer.h>
 #include <hector_grid_map_compression_msgs/CompressedGridMap.h>
+
+namespace hector_grid_map_compression
+{
 
 Compression::Compression() : nh_("~")
 {
@@ -122,15 +125,4 @@ void Compression::mapCb(const grid_map_msgs::GridMapConstPtr& in_msg)
     ss << "<" << layer.name << "> " << layer.layer.data.size() << " bytes ";
   ROS_INFO_THROTTLE(5, "[compression_server] Publishing compressed map, sizes: %s", ss.str().c_str());
 }
-
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "hector_grid_map_compression_server");
-
-  ROS_INFO("[compression_server] Starting compression_server");
-  Compression compression;
-
-  ros::spin();
-
-  return 0;
-}
+}  // namespace hector_grid_map_compression

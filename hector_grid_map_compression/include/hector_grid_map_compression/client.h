@@ -7,6 +7,9 @@
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <hector_grid_map_compression_msgs/CompressedGridMap.h>
 
+namespace hector_grid_map_compression
+{
+
 class Decompression
 {
 public:
@@ -30,3 +33,4 @@ private:
   void connectCb();
   void compressedMapCb(const hector_grid_map_compression_msgs::CompressedGridMapConstPtr& msg);
 };
+}  // namespace hector_grid_map_compression

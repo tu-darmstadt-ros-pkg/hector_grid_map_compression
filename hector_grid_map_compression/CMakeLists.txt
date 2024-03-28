@@ -37,13 +37,18 @@ include_directories(
   ${EIGEN3_INCLUDE_DIR}
 )
 
-add_executable(hector_grid_map_compression_server src/compression_server.cpp)
-add_dependencies(hector_grid_map_compression_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} )
-target_link_libraries(hector_grid_map_compression_server ${catkin_LIBRARIES} )
+add_library(${PROJECT_NAME} src/client.cpp src/server.cpp)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
-add_executable(hector_grid_map_compression_client src/compression_client.cpp)
+# TODO nodelet
+  
+add_executable(hector_grid_map_compression_server src/server_node.cpp)
+add_dependencies(hector_grid_map_compression_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} )
+target_link_libraries(hector_grid_map_compression_server ${PROJECT_NAME} )
+
+add_executable(hector_grid_map_compression_client src/client_node.cpp)
 add_dependencies(hector_grid_map_compression_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} )
-target_link_libraries(hector_grid_map_compression_client ${catkin_LIBRARIES} )
+target_link_libraries(hector_grid_map_compression_client ${PROJECT_NAME} )
 
 # install(TARGETS hector_grid_map_compression_server hector_grid_map_compression_client
 #     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

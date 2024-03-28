@@ -7,6 +7,9 @@
 #include <opencv2/imgcodecs.hpp>
 #include <cv_bridge/cv_bridge.h>
 
+namespace hector_grid_map_compression
+{
+
 class Compression
 {
 public:
@@ -31,3 +34,4 @@ private:
   void connectCb();
   void mapCb(const grid_map_msgs::GridMapConstPtr& msg);
 };
+}  // namespace hector_grid_map_compression
