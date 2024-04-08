@@ -1,0 +1,8 @@
+<library path="libhector_grid_map_compression_rviz_plugin">
+  <class name="hector_grid_map_compression_rviz_plugin/CompressedGridMap" 
+         type="hector_grid_map_compression_rviz_plugin::CompressedGridMapDisplay" 
+         base_class_type="rviz::Display">
+    <description> Decompresses hector_grid_map_compression_msgs/CompressedGridMap messages and displays them as grid_map/GridMap messages.</description>
+    <message_type>hector_grid_map_compression_msgs/CompressedGridMap</message_type>
+  </class>
+</library>

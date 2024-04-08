@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="layer" default="elevation"/>
+  <arg name="input_topic" default="/elevation_mapping/elevation_map/compressed"/>
+  <arg name="output_topic" default="decompressed"/>
+
+  <node ns="hector_grid_map_compression" name="client" type="hector_grid_map_compression_client" pkg="hector_grid_map_compression" output="screen">
+    <remap from="input" to="$(arg input_topic)"/>
+    <remap from="output" to="$(arg output_topic)"/>
+  </node>
+</launch>
