@@ -283,7 +283,7 @@ void GridMapVisual::initializeAndBeginManualObject(size_t nVertices) {
   if (!manualObject_) {
     static uint32_t count = 0;
     rviz::UniformStringStream ss;
-    ss << "Mesh" << count++;
+    ss << "MeshGridMapCompr" << count++; // Unique name for the manual object. Has to be different from the original grid map rviz plugin to avoid OGRE errors.
     manualObject_ = sceneManager_->createManualObject(ss.str());
     manualObject_->setDynamic(true);
     frameNode_->attachObject(manualObject_);
